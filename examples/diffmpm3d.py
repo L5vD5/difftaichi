@@ -485,10 +485,11 @@ def main():
                             r, g, b = 0.4, 0.4, 0.4
 
                     cs.append(ti.rgb_to_hex((r, g, b)))
-                data = np.array(xs + ys + zs + us + vs + ws + cs,
-                                dtype=np.float32)
-                fn = '{}/{:04}.bin'.format(folder, s)
-                data.tofile(open(fn, 'wb'))
+                np.savez('{}/{:04}.npz'.format(folder, s), xs=xs, ys=ys, zs=zs)
+                # data = np.array(xs + ys + zs + us + vs + ws + cs,
+                #                 dtype=np.float32)
+                # fn = '{}/{:04}.bin'.format(folder, s)
+                # data.tofile(open(fn, 'wb'))
                 print('.', end='')
             print()
 

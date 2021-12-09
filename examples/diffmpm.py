@@ -377,6 +377,7 @@ def main():
                 visualize(s, 'diffmpm/iter{:03d}/'.format(iter))
 
     # ti.profiler_print()
+    np.savez('weights.npz', weights.to_numpy())
     plt.title("Optimization of Initial Velocity")
     plt.ylabel("Loss")
     plt.xlabel("Gradient Descent Iterations")
