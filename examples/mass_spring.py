@@ -11,7 +11,7 @@ random.seed(0)
 np.random.seed(0)
 
 real = ti.f32
-ti.init(default_fp=real)
+ti.init(default_fp=real, excepthook=True)
 
 max_steps = 4096
 vis_interval = 256
@@ -35,8 +35,8 @@ n_objects = 0
 # target_ball = 0
 elasticity = 0.0
 ground_height = 0.1
-gravity = -4.8
-friction = 2.5
+gravity = 0.1
+friction = 0.5
 
 gradient_clip = 1
 spring_omega = 10
@@ -56,10 +56,11 @@ bias1 = scalar()
 n_hidden = 32
 weights2 = scalar()
 bias2 = scalar()
+# nn1 output
 hidden = scalar()
 
 center = vec()
-
+# nn2 output
 act = scalar()
 
 
@@ -218,7 +219,9 @@ def forward(output=None, visualize=True):
         compute_center(t - 1)
         nn1(t - 1)
         nn2(t - 1)
-        apply_spring_force(t - 1)
+        if t<200:
+            # ti.log(act)
+            apply_spring_force(t - 1)
         if use_toi:
             advance_toi(t)
         else:
@@ -314,7 +317,7 @@ def optimize(toi, visualize):
 
     losses = []
     # forward('initial{}'.format(robot_id), visualize=visualize)
-    for iter in range(100):
+    for iter in range(10):
         clear()
         # with ti.Tape(loss) automatically clears all gradients
         with ti.Tape(loss):
