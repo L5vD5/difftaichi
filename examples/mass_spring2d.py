@@ -1,0 +1,304 @@
+from mass_spring_robot_config import robots
+import random
+import sys
+import matplotlib.pyplot as plt
+import taichi as ti
+import math
+import numpy as np
+import os
+from matplotlib.animation import FuncAnimation
+
+random.seed(0)
+np.random.seed(0)
+
+real = ti.f32
+ti.init(default_fp=real)
+
+max_steps = 4096
+vis_interval = 256
+output_vis_interval = 8
+steps = 2048 // 2
+assert steps * 2 <= max_steps
+
+scalar = lambda: ti.field(dtype=real)
+vec = lambda: ti.Vector.field(2, dtype=real)
+
+loss = scalar()
+
+x = vec()
+v = vec()
+v_inc = vec()
+
+head_id = 0
+goal = vec()
+
+n_objects = 0
+# target_ball = 0
+elasticity = 0.0
+ground_height = 0.1
+gravity = 0
+friction = 0.5
+
+gradient_clip = 1
+spring_omega = 10
+damping = 40
+
+n_springs = 0
+spring_anchor_a = ti.field(ti.i32)
+spring_anchor_b = ti.field(ti.i32)
+spring_length = scalar()
+spring_stiffness = scalar()
+spring_actuation = scalar()
+
+n_sin_waves = 10
+weights1 = scalar()
+bias1 = scalar()
+
+n_hidden = 32
+weights2 = scalar()
+bias2 = scalar()
+# nn1 output
+hidden = scalar()
+
+center = vec()
+# nn2 output
+act = scalar()
+
+objects = []
+springs = []
+
+dt = 0.004
+learning_rate = 25
+
+# gui = ti.GUI("Mass Spring Robot 3d", (512, 512), background_color=0xFFFFFF)
+
+def n_input_states():
+    return n_sin_waves + 4 * n_objects + 2
+
+def allocate_fields():
+    ti.root.dense(ti.i, max_steps).dense(ti.j, n_objects).place(x, v, v_inc)
+    ti.root.dense(ti.i, n_springs).place(spring_anchor_a, spring_anchor_b,
+                                         spring_length, spring_stiffness,
+                                         spring_actuation)
+    ti.root.dense(ti.ij, (n_hidden, n_input_states())).place(weights1)
+    ti.root.dense(ti.i, n_hidden).place(bias1)
+    ti.root.dense(ti.ij, (n_springs, n_hidden)).place(weights2)
+    ti.root.dense(ti.i, n_springs).place(bias2)
+    ti.root.dense(ti.ij, (max_steps, n_hidden)).place(hidden)
+    ti.root.dense(ti.ij, (max_steps, n_springs)).place(act)
+    ti.root.dense(ti.i, max_steps).place(center)
+    ti.root.place(loss, goal)
+    ti.root.lazy_grad()
+
+@ti.kernel
+def clear_states():
+    for t in range(0, max_steps):
+        for i in range(0, n_objects):
+            v_inc[t, i] = ti.Vector([0.0, 0.0])
+
+def clear():
+    clear_states()
+
+def setup_robot(objects, springs):
+    global n_objects, n_springs
+    n_objects = len(objects)
+    n_springs = len(springs)
+    allocate_fields()
+
+    print('n_objects=', n_objects, '   n_springs=', n_springs)
+
+    # initial pose
+    for i in range(n_objects):
+        x[0, i] = objects[i]
+
+    # spring
+    for i in range(n_springs):
+        s = springs[i]
+        spring_anchor_a[i] = s[0]
+        spring_anchor_b[i] = s[1]
+        spring_length[i] = s[2]
+        spring_stiffness[i] = s[3]
+        spring_actuation[i] = s[4]
+
+robot_id = 2
+if len(sys.argv) != 1:
+    print(
+        "Usage: python3 mass_spring.py"
+    )
+    exit(-1)
+
+def actuation(t: ti.i32):
+    for i in range(n_springs):
+        actuation = 0.0
+        if (i == 1 or (i>6 and i%5 == 2 or i%5 == 3)):
+            actuation = -1
+        else:
+            actuation = 1
+        act[t, i] = actuation
+
+
+@ti.kernel
+def apply_spring_force(t: ti.i32):
+    for i in range(n_springs):
+        a = spring_anchor_a[i]
+        b = spring_anchor_b[i]
+        pos_a = x[t, a]
+        pos_b = x[t, b]
+        dist = pos_a - pos_b
+        length = dist.norm() + 1e-4
+
+        target_length = spring_length[i] * (1.0 +
+                                            spring_actuation[i] * act[t, i])
+        impulse = dt * (length -
+                        target_length) * spring_stiffness[i] / length * dist
+
+        ti.atomic_add(v_inc[t + 1, a], -impulse)
+        ti.atomic_add(v_inc[t + 1, b], impulse)
+
+
+use_toi = False
+
+
+@ti.kernel
+def advance_toi(t: ti.i32):
+    for i in range(n_objects):
+        s = math.exp(-dt * damping)
+        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0
+                                                            ]) + v_inc[t, i]
+        old_x = x[t - 1, i]
+        new_x = old_x + dt * old_v
+        toi = 0.0
+        new_v = old_v
+        if new_x[1] < ground_height and old_v[1] < -1e-4:
+            toi = -(old_x[1] - ground_height) / old_v[1]
+            new_v = ti.Vector([0.0, 0.0])
+        new_x = old_x + toi * old_v + (dt - toi) * new_v
+        v[t, i] = new_v
+        # x[t, i] = new_x
+        if(i != 0 and i != 2):
+            x[t, i] = new_x
+        else:
+            x[t, i] = old_x
+
+
+@ti.kernel
+def advance_no_toi(t: ti.i32):
+    for i in range(n_objects):
+        s = math.exp(-dt * damping)
+        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0
+                                                            ]) + v_inc[t, i]
+        old_x = x[t - 1, i]
+        new_v = old_v
+        depth = old_x[1] - ground_height
+        if depth < 0 and new_v[1] < 0:
+            # friction projection
+            new_v[0] = 0
+            new_v[1] = 0
+        new_x = old_x + dt * new_v
+        v[t, i] = new_v
+        # x[t, i] = new_x
+        if(i != 0 and i != 2):
+            x[t, i] = new_x
+        else:
+            x[t, i] = old_x
+
+def forward(output=None, visualize=True):
+    xlist = []
+    ylist = []
+    if random.random() > 0.5:
+        goal[None] = [0.9, 0.2]
+    else:
+        goal[None] = [0.1, 0.2]
+    goal[None] = [0.9, 0.2]
+
+    interval = vis_interval
+    if output:
+        interval = output_vis_interval
+        os.makedirs('mass_spring/{}/'.format(output), exist_ok=True)
+
+    total_steps = steps if not output else steps * 2
+    for t in range(1, total_steps):
+        xs = []
+        ys = []
+        actuation(t - 1)
+        apply_spring_force(t - 1)
+        if use_toi:
+            advance_toi(t)
+        else:
+            advance_no_toi(t)
+
+        if (t + 1) % interval == 0 and visualize:
+            # gui.lines(begin=(0, ground_height),
+            #          end=(1, ground_height),
+            #          color=0x0,
+            #          radius=3)
+            # plt.scatter([0,1], [ground_height, ground_height])
+            
+            # def circle(x, y, color):
+            #     gui.circle((x, y), ti.rgb_to_hex(color), 7)
+            #     plt.Circle(x, t)
+            for i in range(n_springs):
+
+                def get_pt(x):
+                    return (x[0], x[1])
+
+                a = act[t - 1, i] * 0.5
+                r = 2
+                if spring_actuation[i] == 0:
+                    a = 0
+                    c = 0x222222
+                else:
+                    r = 4
+                    c = ti.rgb_to_hex((0.5 + a, 0.5 - abs(a), 0.5 - a))
+                xs = xs + [get_pt(x[t, spring_anchor_a[i]])[0], get_pt(x[t, spring_anchor_b[i]])[0]]
+                ys = ys + [get_pt(x[t, spring_anchor_a[i]])[1], get_pt(x[t, spring_anchor_b[i]])[1]]
+                # poses = plt.scatter(xlist, ylist)
+                # gui.line(begin=get_pt(x[t, spring_anchor_a[i]]),
+                #          end=get_pt(x[t, spring_anchor_b[i]]),
+                #          radius=r,
+                #          color=c)
+            xlist.append(xs)
+            ylist.append(ys)
+            for i in range(n_objects):
+                color = (0.4, 0.6, 0.6)
+                if i == head_id:
+                    color = (0.8, 0.2, 0.3)
+                # circle(x[t, i][0], x[t, i][1], color)
+            # circle(goal[None][0], goal[None][1], (0.6, 0.2, 0.2))
+    print(len(xlist[0]))
+    fig = plt.figure()
+    ax = fig.add_subplot()#projection="3d")
+    ax.set_xlim([-1, 1])
+    ax.set_ylim([0, 1])
+
+    poses = ax.scatter(xlist[0], ylist[0])
+    def update(frame, xlist, ylist, poses):
+        data = np.vstack((xlist[frame], ylist[frame]))
+        poses.set_offsets(data.T)
+        # print(frame)
+        # poses._offsets2d = (xlist[frame], ylist[frame])
+        return poses
+
+    ani = FuncAnimation(fig, update, fargs=[xlist, ylist, poses], frames=range(len(xlist)), interval=1)
+    ani.save('exAnimation.gif', writer='pillow', fps=30, dpi=100)
+
+    plt.show()
+
+            # if output:
+            #     gui.show('mass_spring/{}/{:04d}.png'.format(output, t))
+            # else:
+            #     gui.show()
+
+
+    loss[None] = 0
+    # compute_loss(steps - 1)
+
+def main():
+    objects, springs = robots[robot_id]()
+    setup_robot(objects, springs)
+    clear()
+    forward('final{}'.format(robot_id))
+
+
+if __name__ == '__main__':
+    main()
