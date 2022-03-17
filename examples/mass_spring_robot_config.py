@@ -107,14 +107,13 @@ def robotB():
 
 def robotC():
     add_mesh_square(2, 0, actuation=0.15)
-    add_mesh_square(0, 0, actuation=0.15)
-    add_mesh_square(0, 1, actuation=0.15)
-    add_mesh_square(0, 2)
-    add_mesh_square(1, 2)
     add_mesh_square(2, 1, actuation=0.15)
-    add_mesh_square(2, 2)
-    add_mesh_square(2, 3)
-    add_mesh_square(2, 4)
+    add_mesh_square(2, 2, actuation=0.15)
+    add_mesh_square(2, 3, actuation=0.15)
+    add_mesh_square(2, 4, actuation=0.15)
+    add_mesh_square(2, 5, actuation=0.15)
+    add_mesh_square(2, 6, actuation=0.15)
+    add_mesh_square(2, 7, actuation=0.15)
 
     return objects, springs
 

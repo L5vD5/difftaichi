@@ -1,8 +1,4 @@
-import taichi as ti
-import os
-import math
 import numpy as np
-import random
 import matplotlib.pyplot as plt
 import time
 from matplotlib.animation import FuncAnimation
@@ -24,21 +20,26 @@ def main():
     for s in range(7, steps, 2):
         fn = '{}{:04}.npz'.format(folder, s)
         data =np.load(fn)
-        xlist.append(data['xs'])
-        ylist.append(data['ys'])
-        zlist.append(data['zs'])
+        # print(type(data['xs']))
+        xs = data['xs'][0: len(data['xs']): 10]
+        ys = data['ys'][0: len(data['ys']): 10]
+        zs = data['zs'][0: len(data['zs']): 10]
+
+        xlist.append(xs)
+        ylist.append(ys)
+        zlist.append(zs)
     
-    # xlist = xlist[0: len(xlist): 10]
-    # ylist = ylist[0: len(ylist): 10]
-    # zlist = zlist[0: len(zlist): 10]
+    # xlist = xlist[0: len(xlist): 50]
+    # ylist = ylist[0: len(ylist): 50]
+    # zlist = zlist[0: len(zlist): 50]
     fig = plt.figure()
     ax = fig.add_subplot(projection="3d")
 
-    poses = ax.scatter(xlist[0], ylist[0], zlist[0], s=1)
+    poses = ax.scatter(xlist[0], ylist[0], zlist[0])
 
 
     ani = FuncAnimation(fig, update, fargs=[xlist, ylist, zlist, poses], frames=range(len(xlist)), interval=1)
-    ani.save('exAnimation.gif', writer='imagemagick', fps=30, dpi=100)
+    # ani.save('exAnimation.gif', writer='imagemagick', fps=30, dpi=100)
     plt.show()
 
 
