@@ -71,7 +71,7 @@ def n_input_states():
 
 
 def allocate_fields():
-    ti.root.dense(ti.i, max_steps).dense(ti.j, n_objects).place(x, v, v_inc)
+    ti.root.dense(ti.i, max_steps).dense(ti.k, n_objects).place(x, v, v_inc)
     ti.root.dense(ti.i, n_springs).place(spring_anchor_a, spring_anchor_b,
                                          spring_length, spring_stiffness,
                                          spring_actuation)
@@ -80,7 +80,7 @@ def allocate_fields():
     ti.root.dense(ti.ij, (n_springs, n_hidden)).place(weights2)
     ti.root.dense(ti.i, n_springs).place(bias2)
     ti.root.dense(ti.ij, (max_steps, n_hidden)).place(hidden)
-    ti.root.dense(ti.ij, (max_steps, n_springs)).place(act)
+    ti.root.dense(ti.ik, (max_steps, n_springs)).place(act)
     ti.root.dense(ti.i, max_steps).place(center)
     ti.root.place(loss, goal)
     ti.root.lazy_grad()
@@ -106,6 +106,7 @@ def apply_spring_force(t: ti.i32):
         a = spring_anchor_a[i]
         b = spring_anchor_b[i]
         pos_a = x[t, a]
+        print(pos_a)
         pos_b = x[t, b]
         dist = pos_a - pos_b
         length = dist.norm() + 1e-4
@@ -126,7 +127,7 @@ use_toi = False
 def advance_toi(t: ti.i32):
     for i in range(n_objects):
         s = math.exp(-dt * damping)
-        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0
+        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0, 0.0
                                                             ]) + v_inc[t, i]
         old_x = x[t - 1, i]
         new_x = old_x + dt * old_v
@@ -277,7 +278,6 @@ else:
 
 def main():
     objects, springs = robots[robot_id]()
-    print(objects)
     setup_robot(objects, springs)
     clear()
     forward('final{}'.format(robot_id))

@@ -107,14 +107,13 @@ def robotB():
 
 def robotC():
     add_mesh_square(2, 0, actuation=0.15)
-    add_mesh_square(0, 0, actuation=0.15)
-    add_mesh_square(0, 1, actuation=0.15)
-    add_mesh_square(0, 2)
-    add_mesh_square(1, 2)
     add_mesh_square(2, 1, actuation=0.15)
-    add_mesh_square(2, 2)
-    add_mesh_square(2, 3)
-    add_mesh_square(2, 4)
+    add_mesh_square(2, 2, actuation=0.15)
+    add_mesh_square(2, 3, actuation=0.15)
+    add_mesh_square(2, 4, actuation=0.15)
+    add_mesh_square(2, 5, actuation=0.15)
+    add_mesh_square(2, 6, actuation=0.15)
+    add_mesh_square(2, 7, actuation=0.15)
 
     return objects, springs
 
@@ -135,5 +134,36 @@ def robotD():
 
     return objects, springs
 
+def robot3D():
+    add_object([0.2, 0.2, 0.2])
+    add_object([0.4, 0.2, 0.2])
+    add_object([0.4, 0.3, 0.2])
+    add_object([0.2, 0.3, 0.2])
+    add_object([0.2, 0.3, 0.3])
+    add_object([0.4, 0.3, 0.3])
+    add_object([0.4, 0.2, 0.3])
+    add_object([0.2, 0.2, 0.3])
 
-robots = [robotA, robotB, robotC, robotD]
+    s = 14000
+    def link(a, b, actuation=0.1):
+        add_spring(a, b, stiffness=s, actuation=actuation)
+
+    link(0, 1)
+    link(1, 2)
+    link(2, 3)
+    link(3, 0)
+    link(4, 5)
+    link(5, 6)
+    link(6, 7)
+    link(7, 4)
+    link(7, 0)
+    link(6, 1)
+    link(5, 2)
+    link(4, 3)
+    
+
+
+    return objects, springs
+
+
+robots = [robotA, robotB, robotC, robotD, robot3D]
