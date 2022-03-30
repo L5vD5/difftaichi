@@ -5,3 +5,4 @@ diffmpm
 mpm3d
 *.npz
 *.png
+*.npy
