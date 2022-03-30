@@ -17,14 +17,14 @@ n_actuators = 0
 n_grid = 64
 dx = 1 / n_grid
 inv_dx = 1 / dx
-dt = 2e-3
+dt = 5e-5
 p_vol = 1
-E = 10
+E = 10000
 # TODO: update
 mu = E
 la = E
-max_steps = 512
-steps = 512
+max_steps = 1024
+steps = 1024
 gravity = 0
 target = [0.8, 0.2, 0.2]
 use_apic = False
@@ -51,7 +51,7 @@ x_avg = vec()
 
 actuation = scalar()
 actuation_omega = 40
-act_strength = 5
+act_strength = 10
 
 visualize_resolution = 256
 
@@ -250,8 +250,9 @@ def compute_actuation(t: ti.i32):
                                          2 * math.pi / n_sin_waves * j)
         act += bias[i]
         # actuation[t, i] = ti.tanh(act)
-        if(i == 0):
-            actuation[t, i] = 0.5
+        actuation[t, i] = 0
+        if(t < 100):
+            actuation[t, 0] = 100
 
 
 @ti.kernel
@@ -461,7 +462,7 @@ def main():
             actuator_id_ = actuator_id.to_numpy()
             folder = 'rilab/iter{:04d}/'.format(iter)
             os.makedirs(folder, exist_ok=True)
-            for s in range(7, steps, 2):
+            for s in range(0, steps, 7):
                 xs, ys, zs = [], [], []
                 us, vs, ws = [], [], []
                 cs = []

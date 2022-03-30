@@ -8,6 +8,7 @@ def update(frame, xlist, ylist, zlist, poses):
     # data = np.vstack((xlist[frame], ylist[frame]))
     # poses.set_offsets(data.T)
     # poses.set_3d_offsets(zlist[frame])
+    plt.title(frame)
     poses._offsets3d = (xlist[frame], ylist[frame], zlist[frame])
     return poses#, lines
 
@@ -17,7 +18,7 @@ def main():
     xlist = []
     ylist = []
     zlist = []
-    for s in range(7, steps, 2):
+    for s in range(0, steps, 7):
         fn = '{}{:04}.npy'.format(folder, s)
         data =np.load(fn)
         # print(type(data['xs']))
@@ -34,6 +35,7 @@ def main():
     # ylist = ylist[0: len(ylist): 50]
     # zlist = zlist[0: len(zlist): 50]
     fig = plt.figure()
+    plt.title(0)
     ax = fig.add_subplot(projection="3d")
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
