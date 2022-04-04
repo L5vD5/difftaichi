@@ -11,6 +11,7 @@ random.seed(0)
 np.random.seed(0)
 
 real = ti.f32
+dim = 3
 ti.init(default_fp=real)
 
 max_steps = 4096
@@ -20,7 +21,7 @@ steps = 2048 // 2
 assert steps * 2 <= max_steps
 
 scalar = lambda: ti.field(dtype=real)
-vec = lambda: ti.Vector.field(2, dtype=real)
+vec = lambda: ti.Vector.field(dim, dtype=real)
 
 loss = scalar()
 
@@ -71,7 +72,7 @@ def n_input_states():
 
 
 def allocate_fields():
-    ti.root.dense(ti.i, max_steps).dense(ti.k, n_objects).place(x, v, v_inc)
+    ti.root.dense(ti.i, max_steps).dense(ti.l, n_objects).place(x, v, v_inc)
     ti.root.dense(ti.i, n_springs).place(spring_anchor_a, spring_anchor_b,
                                          spring_length, spring_stiffness,
                                          spring_actuation)
@@ -80,7 +81,7 @@ def allocate_fields():
     ti.root.dense(ti.ij, (n_springs, n_hidden)).place(weights2)
     ti.root.dense(ti.i, n_springs).place(bias2)
     ti.root.dense(ti.ij, (max_steps, n_hidden)).place(hidden)
-    ti.root.dense(ti.ik, (max_steps, n_springs)).place(act)
+    ti.root.dense(ti.il, (max_steps, n_springs)).place(act)
     ti.root.dense(ti.i, max_steps).place(center)
     ti.root.place(loss, goal)
     ti.root.lazy_grad()
@@ -93,10 +94,6 @@ learning_rate = 25
 def actuation(t: ti.i32):
     for i in range(n_springs):
         actuation = 0.0
-        if (i == 1 or (i>6 and i%5 == 2 or i%5 == 3)):
-            actuation = -1
-        else:
-            actuation = 1
         act[t, i] = actuation
 
 
@@ -106,15 +103,16 @@ def apply_spring_force(t: ti.i32):
         a = spring_anchor_a[i]
         b = spring_anchor_b[i]
         pos_a = x[t, a]
-        print(pos_a)
         pos_b = x[t, b]
         dist = pos_a - pos_b
         length = dist.norm() + 1e-4
 
         target_length = spring_length[i] * (1.0 +
                                             spring_actuation[i] * act[t, i])
+        print(target_length)
         impulse = dt * (length -
                         target_length) * spring_stiffness[i] / length * dist
+        # impulse.fill(0)
 
         ti.atomic_add(v_inc[t + 1, a], -impulse)
         ti.atomic_add(v_inc[t + 1, b], impulse)
@@ -149,7 +147,7 @@ def advance_toi(t: ti.i32):
 def advance_no_toi(t: ti.i32):
     for i in range(n_objects):
         s = math.exp(-dt * damping)
-        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0
+        old_v = s * v[t - 1, i] + dt * gravity * ti.Vector([0.0, 1.0, 0.0
                                                             ]) + v_inc[t, i]
         old_x = x[t - 1, i]
         new_v = old_v
@@ -171,10 +169,10 @@ gui = ti.GUI("Mass Spring Robot", (512, 512), background_color=0xFFFFFF)
 
 def forward(output=None, visualize=True):
     if random.random() > 0.5:
-        goal[None] = [0.9, 0.2]
+        goal[None] = [0.9, 0.2, 0.0]
     else:
-        goal[None] = [0.1, 0.2]
-    goal[None] = [0.9, 0.2]
+        goal[None] = [0.1, 0.2, 0.0]
+    goal[None] = [0.9, 0.2, 0.0]
 
     interval = vis_interval
     if output:
@@ -190,45 +188,60 @@ def forward(output=None, visualize=True):
             advance_toi(t)
         else:
             advance_no_toi(t)
+        # print(x.to_numpy()[t])
 
-        if (t + 1) % interval == 0 and visualize:
-            gui.line(begin=(0, ground_height),
-                     end=(1, ground_height),
-                     color=0x0,
-                     radius=3)
+        # if (t + 1) % interval == 0 and visualize:
 
-            def circle(x, y, color):
-                gui.circle((x, y), ti.rgb_to_hex(color), 7)
+            # gui.line(begin=(0, ground_height),
+            #          end=(1, ground_height),
+            #          color=0x0,
+            #          radius=3)
 
-            for i in range(n_springs):
+            # def circle(x, y, color):
+            #     gui.circle((x, y), ti.rgb_to_hex(color), 7)
 
-                def get_pt(x):
-                    return (x[0], x[1])
+            # for i in range(n_springs):
 
-                a = act[t - 1, i] * 0.5
-                r = 2
-                if spring_actuation[i] == 0:
-                    a = 0
-                    c = 0x222222
-                else:
-                    r = 4
-                    c = ti.rgb_to_hex((0.5 + a, 0.5 - abs(a), 0.5 - a))
-                gui.line(begin=get_pt(x[t, spring_anchor_a[i]]),
-                         end=get_pt(x[t, spring_anchor_b[i]]),
-                         radius=r,
-                         color=c)
+            #     def get_pt(x):
+            #         return (x[0], x[1])
 
-            for i in range(n_objects):
-                color = (0.4, 0.6, 0.6)
-                if i == head_id:
-                    color = (0.8, 0.2, 0.3)
-                circle(x[t, i][0], x[t, i][1], color)
-            # circle(goal[None][0], goal[None][1], (0.6, 0.2, 0.2))
+            #     a = act[t - 1, i] * 0.5
+            #     r = 2
+            #     if spring_actuation[i] == 0:
+            #         a = 0
+            #         c = 0x222222
+            #     else:
+            #         r = 4
+            #         c = ti.rgb_to_hex((0.5 + a, 0.5 - abs(a), 0.5 - a))
+            #     gui.line(begin=get_pt(x[t, spring_anchor_a[i]]),
+            #              end=get_pt(x[t, spring_anchor_b[i]]),
+            #              radius=r,
+            #              color=c)
 
-            if output:
-                gui.show('mass_spring/{}/{:04d}.png'.format(output, t))
-            else:
-                gui.show()
+            # for i in range(n_objects):
+            #     color = (0.4, 0.6, 0.6)
+            #     if i == head_id:
+            #         color = (0.8, 0.2, 0.3)
+            #     circle(x[t, i][0], x[t, i][1], color)
+            # # circle(goal[None][0], goal[None][1], (0.6, 0.2, 0.2))
+
+            # if output:
+            #     gui.show('mass_spring/{}/{:04d}.png'.format(output, t))
+            # else:
+            #     gui.show()
+    folder = 'mass_spring_3d/iter{:04d}'.format(1)
+    os.makedirs(folder, exist_ok=True)
+    x_ = x.to_numpy()
+    for s in range(0, steps, 7):
+        xs, ys, zs = [], [], []
+        us, vs, ws = [], [], []
+        cs = []
+        for i in range(n_objects):
+            xs.append(x_[s, i][0])
+            ys.append(x_[s, i][1])
+            zs.append(x_[s, i][2])
+
+        np.save('{}/{:04}'.format(folder, s), [xs, ys, zs])
 
     loss[None] = 0
     # compute_loss(steps - 1)
@@ -238,7 +251,7 @@ def forward(output=None, visualize=True):
 def clear_states():
     for t in range(0, max_steps):
         for i in range(0, n_objects):
-            v_inc[t, i] = ti.Vector([0.0, 0.0])
+            v_inc[t, i] = ti.Vector([0.0, 0.0, 0.0])
 
 
 def clear():

@@ -135,31 +135,35 @@ def robotD():
     return objects, springs
 
 def robot3D():
-    add_object([0.2, 0.2, 0.2])
-    add_object([0.4, 0.2, 0.2])
-    add_object([0.4, 0.3, 0.2])
-    add_object([0.2, 0.3, 0.2])
-    add_object([0.2, 0.3, 0.3])
-    add_object([0.4, 0.3, 0.3])
-    add_object([0.4, 0.2, 0.3])
-    add_object([0.2, 0.2, 0.3])
+    add_object([2, 2, 2])
+    add_object([4, 2, 2])
+    add_object([4, 3, 2])
+    add_object([2, 3, 2])
+    add_object([2, 3, 5])
+    add_object([4, 3, 5])
+    add_object([4, 2, 5])
+    add_object([2, 2, 5])
 
-    s = 14000
-    def link(a, b, actuation=0.1):
+    s = 1
+    def link(a, b, actuation=0.0):
         add_spring(a, b, stiffness=s, actuation=actuation)
 
-    link(0, 1)
-    link(1, 2)
-    link(2, 3)
-    link(3, 0)
-    link(4, 5)
-    link(5, 6)
-    link(6, 7)
-    link(7, 4)
-    link(7, 0)
-    link(6, 1)
-    link(5, 2)
-    link(4, 3)
+    for i in range(8):
+        for j in range(8):
+            if (i != j):
+                link(i, j, actuation=0.1)
+    # link(0, 1)
+    # link(1, 2)
+    # link(2, 3)
+    # link(3, 0)
+    # link(4, 5)
+    # link(5, 6)
+    # link(6, 7)
+    # link(7, 4)
+    # link(7, 0)
+    # link(6, 1)
+    # link(5, 2)
+    # link(4, 3)
     
 
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import time
 
 real = ti.f32
-ti.init(default_fp=real, arch=ti.gpu, flatten_if=True, device_memory_GB=8)
+ti.init(default_fp=real, arch=ti.gpu, flatten_if=True, device_memory_GB=9)
 
 dim = 3
 # this will be overwritten
@@ -17,14 +17,14 @@ n_actuators = 0
 n_grid = 64
 dx = 1 / n_grid
 inv_dx = 1 / dx
-dt = 5e-5
+dt = 1e-5
 p_vol = 1
 E = 10000
 # TODO: update
 mu = E
 la = E
-max_steps = 1024
-steps = 1024
+max_steps = 40000
+steps = 40000
 gravity = 0
 target = [0.8, 0.2, 0.2]
 use_apic = False
@@ -250,9 +250,10 @@ def compute_actuation(t: ti.i32):
                                          2 * math.pi / n_sin_waves * j)
         act += bias[i]
         # actuation[t, i] = ti.tanh(act)
-        actuation[t, i] = 0
-        if(t < 100):
-            actuation[t, 0] = 100
+        if i != 0:
+            actuation[t, i] = 0
+        else:
+            actuation[t, i] = 100
 
 
 @ti.kernel
@@ -324,7 +325,7 @@ class Scene:
         if ptype == 0:
             assert actuation == -1
         global n_particles
-        density = 3
+        density = 1
         w_count = int(w / dx * density)
         h_count = int(h / dx * density)
         d_count = int(d / dx * density)

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from matplotlib.animation import FuncAnimation
-steps = 512
+steps = 4096
 
 def update(frame, xlist, ylist, zlist, poses):
     # data = np.vstack((xlist[frame], ylist[frame]))
@@ -15,6 +15,7 @@ def update(frame, xlist, ylist, zlist, poses):
 def main():
     print('diffmpm3d test')
     folder = 'rilab/iter{:04d}/'.format(0)
+    # folder = 'mass_spring_3d/iter{:04d}/'.format(1)
     xlist = []
     ylist = []
     zlist = []
@@ -22,9 +23,9 @@ def main():
         fn = '{}{:04}.npy'.format(folder, s)
         data =np.load(fn)
         # print(type(data['xs']))
-        xs = data[0][0: len(data[0]): 10]
-        ys = data[1][0: len(data[1]): 10]
-        zs = data[2][0: len(data[2]): 10]
+        xs = data[0][0: len(data[0])]
+        ys = data[1][0: len(data[1])]
+        zs = data[2][0: len(data[2])]
         # zs = data['cs'][0: len(data['cs']): 10]
 
         xlist.append(xs)
@@ -37,9 +38,12 @@ def main():
     fig = plt.figure()
     plt.title(0)
     ax = fig.add_subplot(projection="3d")
-    ax.set_xlim([0, 1])
-    ax.set_ylim([0, 1])
-    ax.set_zlim([2, 0])
+    ax.set_xlim([0, 0.5])
+    ax.set_ylim([0, 0.5])
+    ax.set_zlim([1, 0.5])
+    # ax.set_xlim([2, 5])
+    # ax.set_ylim([2, 5])
+    # ax.set_zlim([1, 10])
     poses = ax.scatter(xlist[0], ylist[0], zlist[0], c=range(len(zlist[0])))
     # lines, = ax.plot(xlist[0], ylist[0], zlist[0])
 
