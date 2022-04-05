@@ -13,6 +13,13 @@ def add_spring(a, b, length=None, stiffness=1, actuation=0.1):
                   (objects[a][1] - objects[b][1])**2)**0.5
     springs.append([a, b, length, stiffness, actuation])
 
+def add_spring3D(a, b, length=None, stiffness=1, actuation=0.1):
+    if length == None:
+        length = ((objects[a][0] - objects[b][0])**2 +
+                  (objects[a][1] - objects[b][1])**2 +
+                  (objects[a][2] - objects[b][2])**2)**0.5
+    springs.append([a, b, length, stiffness, actuation])
+
 
 def robotA():
     add_object([0.2, 0.1])
@@ -135,38 +142,36 @@ def robotD():
     return objects, springs
 
 def robot3D():
-    add_object([2, 2, 2])
-    add_object([4, 2, 2])
-    add_object([4, 3, 2])
-    add_object([2, 3, 2])
-    add_object([2, 3, 5])
-    add_object([4, 3, 5])
-    add_object([4, 2, 5])
-    add_object([2, 2, 5])
+    a = add_object([2, 2, 2])
+    b = add_object([4, 2, 2])
+    c = add_object([4, 3, 2])
+    d = add_object([2, 3, 2])
+    e = add_object([2, 3, 5])
+    f = add_object([4, 3, 5])
+    g = add_object([4, 2, 5])
+    h = add_object([2, 2, 5])
 
-    s = 1
-    def link(a, b, actuation=0.0):
-        add_spring(a, b, stiffness=s, actuation=actuation)
+    s = 3e4
+    def link(a, b, actuation=1):
+        add_spring3D(a, b, stiffness=s, actuation=actuation)
 
-    for i in range(8):
-        for j in range(8):
+    # e f
+    # h g
+    # d c
+    # a b
+    l = [a, b, c, d, e, f, g, h]
+    for i in l:
+        for j in l:
             if (i != j):
-                link(i, j, actuation=0.1)
-    # link(0, 1)
-    # link(1, 2)
-    # link(2, 3)
-    # link(3, 0)
-    # link(4, 5)
-    # link(5, 6)
-    # link(6, 7)
-    # link(7, 4)
-    # link(7, 0)
-    # link(6, 1)
-    # link(5, 2)
-    # link(4, 3)
+                if (i == 0 and j == 5) or (i==5 and j==0) or \
+                    (i == 1 and j == 4) or (i==4 and j==1) or \
+                    (i == 2 and j == 7) or (i==7 and j==2) or \
+                    (i == 3 and j == 6) or (i==6 and j==3) or \
+                    (i == 0):
+                    link(i, j, actuation=0.1)
+                else:
+                    link(i, j, actuation=0)
     
-
-
     return objects, springs
 
 

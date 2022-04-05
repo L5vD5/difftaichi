@@ -87,14 +87,16 @@ def allocate_fields():
     ti.root.lazy_grad()
 
 
-dt = 0.004
+dt = 0.002
 learning_rate = 25
 
 
 def actuation(t: ti.i32):
     for i in range(n_springs):
-        actuation = 0.0
-        act[t, i] = actuation
+        act[t, i] = 0
+        if i == 5:
+            act[t, i] = -t/50
+        
 
 
 @ti.kernel
@@ -105,11 +107,11 @@ def apply_spring_force(t: ti.i32):
         pos_a = x[t, a]
         pos_b = x[t, b]
         dist = pos_a - pos_b
+        # print(dist, dist.norm())
         length = dist.norm() + 1e-4
 
         target_length = spring_length[i] * (1.0 +
                                             spring_actuation[i] * act[t, i])
-        print(target_length)
         impulse = dt * (length -
                         target_length) * spring_stiffness[i] / length * dist
         # impulse.fill(0)
@@ -232,16 +234,30 @@ def forward(output=None, visualize=True):
     folder = 'mass_spring_3d/iter{:04d}'.format(1)
     os.makedirs(folder, exist_ok=True)
     x_ = x.to_numpy()
+    v_ = v.to_numpy()
     for s in range(0, steps, 7):
         xs, ys, zs = [], [], []
         us, vs, ws = [], [], []
-        cs = []
+        cs, c_ = [], []
         for i in range(n_objects):
             xs.append(x_[s, i][0])
             ys.append(x_[s, i][1])
             zs.append(x_[s, i][2])
-
-        np.save('{}/{:04}'.format(folder, s), [xs, ys, zs])
+            us.append(v_[s, i][0])
+            vs.append(v_[s, i][1])
+            ws.append(v_[s, i][2])
+        for i in range(n_springs):
+            a = act[t - 1, i] * 0.5
+            r = 2
+            if spring_actuation[i] == 0:
+                a = 0
+                c = 255
+            else:
+                r = 4
+                c = 0#ti.rgb_to_hex((0.5 + a, 0.5 - abs(a), 0.5 - a))
+            c_.append(c)
+        cs.append(c_)
+        np.save('{}/{:04}'.format(folder, s), [xs, ys, zs, us, vs, ws])
 
     loss[None] = 0
     # compute_loss(steps - 1)
