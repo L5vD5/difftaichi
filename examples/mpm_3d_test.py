@@ -7,8 +7,7 @@ steps = 1024
 
 def main():
     print('diffmpm3d test')
-    # folder = 'rilab/iter{:04d}/'.format(0)
-    folder = 'mass_spring_3d/iter{:04d}/'.format(1)
+    folder = 'rilab/iter{:04d}/'.format(0)
     xlist = []
     ylist = []
     zlist = []
@@ -19,9 +18,9 @@ def main():
         xs = data[0][0: len(data[0])]
         ys = data[1][0: len(data[1])]
         zs = data[2][0: len(data[2])]
-        us = data[3][0: len(data[3])]
-        vs = data[4][0: len(data[4])]
-        ws = data[5][0: len(data[5])]
+        # us = data[3][0: len(data[3])]
+        # vs = data[4][0: len(data[4])]
+        # ws = data[5][0: len(data[5])]
         # cs = data[6][0: len(data[6])]
         # zs = data['cs'][0: len(data['cs']): 10]
 
@@ -35,21 +34,11 @@ def main():
     fig = plt.figure()
     plt.title(0)
     ax = fig.add_subplot(projection="3d")
-    # ax.set_xlim([0, 0.5])
-    # ax.set_ylim([0, 0.5])
-    # ax.set_zlim([1, 0.5])
-    ax.set_xlim([2, 5])
-    ax.set_ylim([2, 5])
-    ax.set_zlim([1, 10])
-    poses = ax.scatter(xlist[0], ylist[0], zlist[0], c='k')
+    ax.set_xlim([0, 0.5])
+    ax.set_ylim([0, 0.5])
+    ax.set_zlim([1, 0.5])
+    poses = ax.scatter(xlist[0], ylist[0], zlist[0], c=range(len(xlist[0])))
     lines = []
-    for i in range(len(xlist[0])):
-        lines.append([])
-        for j in range(len(xlist[0])):
-            if i != j:
-                lines[i].append(ax.plot([xlist[0][i], xlist[0][j]], [ylist[0][i], ylist[0][j]], [zlist[0][i], zlist[0][j]], c='k')[0])
-            else:
-                lines[i].append(None)
 
     # lines, = ax.plot(xlist[0], ylist[0], zlist[0])
     def update(frame, xlist, ylist, zlist, lines, poses):
@@ -58,15 +47,6 @@ def main():
         # poses.set_3d_offsets(zlist[frame])
         plt.title(frame)
         poses._offsets3d = (xlist[frame], ylist[frame], zlist[frame])
-        for i in range(len(xlist[frame])):
-            for j in range(len(xlist[frame])):
-                if i != j:
-                    # print([[xlist[frame][i], xlist[frame][j]], [ylist[frame][i], ylist[frame][j]]])
-                    lines[i][j].set_data(np.array([xlist[frame][i], xlist[frame][j]]), np.array([ylist[frame][i], ylist[frame][j]]))#, [ylist[frame][i], ylist[frame][j]], [zlist[frame][i], zlist[frame][j]]
-                    lines[i][j].set_3d_properties(np.array([zlist[frame][i], zlist[frame][j]]))
-                    if (i == 0 and j == 5) or (i == 5 and j == 0):
-                        lines[i][j].set_color([0, 1, 0])
-                    # lines[i][j].set_ydata([ylist[frame][i], ylist[frame][j]])
 
         return poses, lines
 

@@ -1,5 +1,6 @@
 objects = []
 springs = []
+import numpy as np
 
 
 def add_object(x):
@@ -141,38 +142,66 @@ def robotD():
 
     return objects, springs
 
-def robot3D():
-    a = add_object([2, 2, 2])
-    b = add_object([4, 2, 2])
-    c = add_object([4, 3, 2])
-    d = add_object([2, 3, 2])
-    e = add_object([2, 3, 5])
-    f = add_object([4, 3, 5])
-    g = add_object([4, 2, 5])
-    h = add_object([2, 2, 5])
+
+
+# 3d
+def add_mesh_point_3d(i, j, k):
+    if (i, j, k) not in points:
+        id = add_object((i * 0.05 + 0.1, j * 0.05 + 0.1, k * 0.05 + 0.1))
+        points.append((i, j, k))
+        point_id.append(id)
+        # print((i * 0.05 + 0.1, j * 0.05 + 0.1, k * 0.05 + 0.1))
+
+    return point_id[points.index((i, j, k))]
+global k
+k = 0
+def add_mesh_spring_3d(a, b, s, act):
+    global k
+    if (a, b) in mesh_springs or (b, a) in mesh_springs:
+        return
+    print(k, a, b, np.linalg.norm(np.array(points[a])-np.array(points[b])))
+    k+=1
+    mesh_springs.append((a, b))
+    add_spring3D(a, b, stiffness=s, actuation=act)
+
+def add_mesh_cube(i, j, k, actuation=0.0):
+    poses = np.array([[i, j, k], [i+1, j, k], [i+1, j+1, k], [i, j+1, k], [i, j+1, k+1], [i+1, j+1, k+1], [i+1, j, k+1], [i, j, k+1]])
+    p = []
+    for pose in poses:
+        p.append(add_mesh_point_3d(pose[0], pose[1], pose[2]))
+    # a = add_mesh_point_3d(2, 2, 2)
+    # b = add_mesh_point_3d(4, 2, 2)
+    # c = add_mesh_point_3d(4, 4, 2)
+    # d = add_mesh_point_3d(2, 4, 2)
+    # e = add_mesh_point_3d(2, 4, 4)
+    # f = add_mesh_point_3d(4, 4, 4)
+    # g = add_mesh_point_3d(4, 2, 4)
+    # h = add_mesh_point_3d(2, 2, 4)
 
     s = 3e4
-    def link(a, b, actuation=1):
-        add_spring3D(a, b, stiffness=s, actuation=actuation)
-
     # e f
     # h g
     # d c
     # a b
-    l = [a, b, c, d, e, f, g, h]
+    l = p#[a, b, c, d, e, f, g, h]
     for i in l:
         for j in l:
             if (i != j):
-                if (i == 0 and j == 5) or (i==5 and j==0) or \
-                    (i == 1 and j == 4) or (i==4 and j==1) or \
-                    (i == 2 and j == 7) or (i==7 and j==2) or \
-                    (i == 3 and j == 6) or (i==6 and j==3) or \
-                    (i == 0):
-                    link(i, j, actuation=0.1)
+                dist = np.array(points[i])-np.array(points[j])
+                # print(a, i, j, np.linalg.norm(dist))
+                if np.linalg.norm(dist) > 1:
+                    add_mesh_spring_3d(i, j, s, act=0.15)
                 else:
-                    link(i, j, actuation=0)
+                    add_mesh_spring_3d(i, j, s, act=0)
     
-    return objects, springs
 
+
+def robot3D():
+    add_mesh_cube(0, 0, 0)
+    add_mesh_cube(0, 0, 1)
+    add_mesh_cube(0, 0, 2)
+    add_mesh_cube(0, 0, 3)
+
+    return objects, springs
 
 robots = [robotA, robotB, robotC, robotD, robot3D]

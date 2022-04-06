@@ -69,7 +69,8 @@ springs = []
 
 def n_input_states():
     return n_sin_waves + 4 * n_objects + 2
-
+global force
+force = 2
 
 def allocate_fields():
     ti.root.dense(ti.i, max_steps).dense(ti.l, n_objects).place(x, v, v_inc)
@@ -92,10 +93,14 @@ learning_rate = 25
 
 
 def actuation(t: ti.i32):
+    global force
     for i in range(n_springs):
         act[t, i] = 0
-        if i == 5:
-            act[t, i] = -t/50
+        if i == 4 or i == 29 or i == 51 or i == 73:
+            if t % 200 == 0 and i == 4:
+                print(force)
+                force += 1
+            act[t, i] = force
         
 
 
@@ -138,11 +143,7 @@ def advance_toi(t: ti.i32):
             new_v = ti.Vector([0.0, 0.0])
         new_x = old_x + toi * old_v + (dt - toi) * new_v
         v[t, i] = new_v
-        # x[t, i] = new_x
-        if(i != 0 and i != 2):
-            x[t, i] = new_x
-        else:
-            x[t, i] = old_x
+        x[t, i] = new_x
 
 
 @ti.kernel
@@ -160,11 +161,12 @@ def advance_no_toi(t: ti.i32):
             new_v[1] = 0
         new_x = old_x + dt * new_v
         v[t, i] = new_v
-        # x[t, i] = new_x
-        if(i != 0 and i != 2):
+        if(i != 0 and i != 1 and i != 2 and i !=3):
             x[t, i] = new_x
         else:
-            x[t, i] = old_x
+            # print(x[t, i])
+            x[t, i] = [new_x[0], new_x[1], old_x[2]]
+
 
 gui = ti.GUI("Mass Spring Robot", (512, 512), background_color=0xFFFFFF)
 
