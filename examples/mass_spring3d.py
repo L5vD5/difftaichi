@@ -96,9 +96,10 @@ def actuation(t: ti.i32):
     global force
     for i in range(n_springs):
         act[t, i] = 0
-        if i == 4 or i == 29 or i == 51 or i == 73:
-            if t % 200 == 0 and i == 4:
-                print(force)
+        # if i == 4 or i == 29 or i == 51 or i == 73:
+        if i == 6 or i == 31 or i == 53 or i == 75:
+            if t % 200 == 0 and i == 6:
+                # print(force)
                 force += 1
             act[t, i] = force
         

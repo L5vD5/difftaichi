@@ -153,8 +153,10 @@ def add_mesh_point_3d(i, j, k):
         # print((i * 0.05 + 0.1, j * 0.05 + 0.1, k * 0.05 + 0.1))
 
     return point_id[points.index((i, j, k))]
+
 global k
 k = 0
+
 def add_mesh_spring_3d(a, b, s, act):
     global k
     if (a, b) in mesh_springs or (b, a) in mesh_springs:
@@ -194,6 +196,27 @@ def add_mesh_cube(i, j, k, actuation=0.0):
                 else:
                     add_mesh_spring_3d(i, j, s, act=0)
     
+def add_mesh_cube2(i, j, k, actuation=0.0):
+    poses = np.array([[i, j, k], [i+1, j, k], [i+1, j+1, k], [i, j+1, k], [i, j+1, k+1], [i+1, j+1, k+1], [i+1, j, k+1], [i, j, k+1]])
+    p = []
+    for pose in poses:
+        p.append(add_mesh_point_3d(pose[0], pose[1], pose[2]))
+
+    s = 3e4
+    # e f
+    # h g
+    # d c
+    # a b
+    l = p#[a, b, c, d, e, f, g, h]
+    for i in l:
+        for j in l:
+            if (i != j):
+                dist = np.array(points[i])-np.array(points[j])
+                # print(a, i, j, np.linalg.norm(dist))
+                if np.linalg.norm(dist) == 1:
+                    add_mesh_spring_3d(i, j, s, act=0.15)
+                else:
+                    add_mesh_spring_3d(i, j, s, act=0)
 
 
 def robot3D():
@@ -204,4 +227,12 @@ def robot3D():
 
     return objects, springs
 
-robots = [robotA, robotB, robotC, robotD, robot3D]
+def robot3D_2():
+    add_mesh_cube2(0, 0, 0)
+    add_mesh_cube2(0, 0, 1)
+    add_mesh_cube2(0, 0, 2)
+    add_mesh_cube2(0, 0, 3)
+
+    return objects, springs
+
+robots = [robotA, robotB, robotC, robotD, robot3D, robot3D_2]
